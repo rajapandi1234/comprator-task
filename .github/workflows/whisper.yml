@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload the scan output
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: scan_results
           path: /tmp/scan_output.json
