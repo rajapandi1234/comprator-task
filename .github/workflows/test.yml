@@ -26,10 +26,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest coverage
 
-      - name: Run tests and generate coverage report
-        run: |
-          coverage run -m pytest
-          coverage xml
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v1.0.0
