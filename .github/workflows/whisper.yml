@@ -1,0 +1,42 @@
+name: Secret Scanning
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  whispers:
+    name: Whispers Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Whispers
+        run: sudo pip install whispers
+
+      - name: Run Whispers
+        id: run-whispers
+        run: whispers ${{ github.workspace }} > /tmp/scan_output.json
+
+      - name: Check for Secrets
+        id: check-secrets
+        run: |
+          if grep -q '"type":' /tmp/scan_output.json; then
+            echo "Secrets detected!"
+            exit 1
+          else
+            echo "No secrets detected."
+          fi
+
+      - name: Upload the scan output
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: scan_results
+          path: /tmp/scan_output.json
+          retention-days: 2
