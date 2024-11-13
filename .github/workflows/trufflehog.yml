@@ -19,4 +19,5 @@ jobs:
       - name: Run TruffleHog
         uses: trufflesecurity/trufflehog@v3.0.0
         with:
-          scan: 'repo'
+          entryPoint: 'trufflehog'
+          args: '--json --directory .'
