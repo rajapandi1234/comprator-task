@@ -1,0 +1,61 @@
+name: Secret Scanning
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  gitleaks:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Gitleaks
+        id: gitleaks
+        uses: zricethezav/gitleaks-action@v1.3.0
+        with:
+          config: ''
+
+      - name: Create Check Run
+        id: create-check
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: checkRun } = await github.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Gitleaks Scan',
+              head_sha: context.sha,
+              status: 'in_progress',
+              started_at: new Date().toISOString()
+            });
+            return checkRun.id;
+
+      - name: Update Check Run with Results
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const checkRunId = core.getInput('check_run_id');
+            const conclusion = steps.gitleaks.outcome === 'success' ? 'success' : 'failure';
+            const output = steps.gitleaks.outputs.result || 'No secrets found';
+            await github.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: checkRunId,
+              status: 'completed',
+              conclusion: conclusion,
+              completed_at: new Date().toISOString(),
+              output: {
+                title: 'Gitleaks Scan Results',
+                summary: output
+              }
+            });
+        env:
+          check_run_id: ${{ steps.create-check.outputs.check_run_id }}
