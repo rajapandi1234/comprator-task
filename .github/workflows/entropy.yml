@@ -22,7 +22,7 @@ jobs:
 
     - name: Detect secrets
       run: |
-        import re
+        echo "import re
         import math
 
         # Define regex patterns
@@ -60,7 +60,9 @@ jobs:
                         secrets_found.extend(scan_file(content))
 
         if secrets_found:
-            print("Secrets detected:", secrets_found)
+            print('Secrets detected:', secrets_found)
             exit(1)
         else:
-            print("No secrets detected.")
+            print('No secrets detected.')
+        " > detect_secrets.py
+        python detect_secrets.py
