@@ -1,0 +1,66 @@
+name: Secret Detection
+
+on: [pull_request]
+
+jobs:
+  detect-secrets:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install regex
+
+    - name: Detect secrets
+      run: |
+        import re
+        import math
+
+        # Define regex patterns
+        regex_patterns = [
+            r'AKIA[0-9A-Z]{16}',  # AWS Access Key ID
+            r'(?i)secret',        # Generic secret keyword
+            r'(?i)password',      # Generic password keyword
+            r'[A-Za-z0-9]{40}',   # Generic token pattern
+        ]
+
+        # Function to calculate entropy
+        def calculate_entropy(string):
+            prob = [float(string.count(c)) / len(string) for c in dict.fromkeys(list(string))]
+            entropy = - sum([p * math.log(p) / math.log(2.0) for p in prob])
+            return entropy
+
+        # Function to scan file content
+        def scan_file(file_content):
+            secrets = []
+            for pattern in regex_patterns:
+                matches = re.findall(pattern, file_content)
+                for match in matches:
+                    if calculate_entropy(match) > 4.5:  # Threshold for high entropy
+                        secrets.append(match)
+            return secrets
+
+        # Scan all files in the PR
+        import os
+        secrets_found = []
+        for root, dirs, files in os.walk('.'):
+            for file in files:
+                if file.endswith('.py') or file.endswith('.txt'):  # Adjust file types as needed
+                    with open(os.path.join(root, file), 'r') as f:
+                        content = f.read()
+                        secrets_found.extend(scan_file(content))
+
+        if secrets_found:
+            print("Secrets detected:", secrets_found)
+            exit(1)
+        else:
+            print("No secrets detected.")
